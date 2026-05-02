@@ -7,7 +7,8 @@ SDL_LIBS = $(shell pkg-config sdl3 --libs)
 DEBUG_FLAGS = -g -fsanitize=address,undefined -fno-omit-frame-pointer
 RELEASE_FLAGS = -O2
 
-SRC = src/main.c src/chip8.c src/opcodes.c src/platform_sdl3.c
+# SRC = src/main.c src/chip8.c src/opcodes.c src/platform_sdl3.c
+SRC = src/main.c
 OUT = chip8
 
 all: debug
