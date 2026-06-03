@@ -1,84 +1,96 @@
 #include "../include/chip8.h"
 
-void chip8_init(struct Chip8 *chip8)
-{
-    chip8->pc = 0x200;
-    chip8->opcode = 0;
-    chip8->I = 0;
-    chip8->sp = 0;
- 
-    for (int i = 0; i < 4096; ++i) chip8->memory[i] = 0;
-    for (int i = 0; i < 16; ++i) chip8->V[i] = 0;
-    for (int i = 0; i < 16; ++i) chip8->stack[i] = 0;
-    for (int i = 0; i < 64 * 32; ++i) chip8->display[i] = 0;
-    for (int i = 0; i < 16; ++i) chip8->keypad[i] = false;
-
-    chip8->delay_timer = 0;
-    chip8->sound_timer = 0;
-
-    for (int i = 0; i < 80; ++i) chip8->memory[0x50 + i] = chip8_fontset[i];
+void EdS_chip_8_init(struct EdS_chip_8* obj) {
+    EdS_chip_8_init_font(obj);
 }
 
-void chip8_load_rom(struct Chip8 *chip8, const char *rom_path)
-{
-    FILE *rom_buffer = fopen(rom_path, "rb");
-    if (!rom_buffer)
-    {
-        // Error
-        return;
-    }
-
-    if (fseek(rom_buffer, 0, SEEK_END) != 0)
-    {
-        // Error
-        fclose(rom_buffer);
-        return;
-    }
-    long buffer_size = ftell(rom_buffer);
-    if (buffer_size < 0)
-    {
-        // Error
-        fclose(rom_buffer);
-        return;
-    }
-    fseek(rom_buffer, 0, SEEK_SET);
-    rewind(rom_buffer);
-
-    size_t read = fread(&(chip8->memory[0x200]), 1, buffer_size, rom_buffer);
-    if (read != buffer_size)
-    {
-        // Error
-        fclose(rom_buffer);
-        return;
+void EdS_chip_8_init_font(struct EdS_chip_8* obj) {
+    for (size_t i = 0; i < 5; ++i) {
+        obj->memory[0x050 + 5 * 0 + i] = sprite_0[i];
+        obj->memory[0x050 + 5 * 1 + i] = sprite_1[i];
+        obj->memory[0x050 + 5 * 2 + i] = sprite_2[i];
+        obj->memory[0x050 + 5 * 3 + i] = sprite_3[i];
+        obj->memory[0x050 + 5 * 4 + i] = sprite_4[i];
+        obj->memory[0x050 + 5 * 5 + i] = sprite_5[i];
+        obj->memory[0x050 + 5 * 6 + i] = sprite_6[i];
+        obj->memory[0x050 + 5 * 7 + i] = sprite_7[i];
+        obj->memory[0x050 + 5 * 8 + i] = sprite_8[i];
+        obj->memory[0x050 + 5 * 9 + i] = sprite_9[i];
+        obj->memory[0x050 + 5 * 10 + i] = sprite_A[i];
+        obj->memory[0x050 + 5 * 11 + i] = sprite_B[i];
+        obj->memory[0x050 + 5 * 12 + i] = sprite_C[i];
+        obj->memory[0x050 + 5 * 13 + i] = sprite_D[i];
+        obj->memory[0x050 + 5 * 14 + i] = sprite_E[i];
+        obj->memory[0x050 + 5 * 15 + i] = sprite_F[i];
     }
 }
 
-void chip8_emulate_cycle()
-{
-    // Fetch, Decode, Execute one opcode
+void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
+    // Adjust timings: around 700 instructions/second fits well enough for most CHIP-8 programs
 
-    // Fetch opcode
-    /*
-    1) Fetch one opcode from the memory at the location specified by the pc.
-    2) Data is stored in an array in which each address contains one byte (memory).
-    3) As one opcode is 2 bytes long, we will need to fetch two successive bytes and merge them to get the actual opcode.
-    */
+    // Fetch the instruction from memory at the current PC
+    uint16_t current_instruction = ((uint16_t)obj->memory[obj->PC++]) << 8;
+    current_instruction |= (uint16_t)obj->memory[obj->PC++];
 
-    // Decode opcode
-    /*
-    Check the opcode table to see what the fetched opcode means.
-    */
+    // Decode the instruction to find out what the emulator should do
+    uint8_t first_nibble = (uint8_t)((current_instruction & 0xF000) >> 12);
+    uint8_t X = (uint8_t)((current_instruction & 0x0F00) >> 8);
+    uint8_t Y = (uint8_t)((current_instruction & 0x00F0) >> 4);
+    uint8_t N = (uint8_t)(current_instruction & 0x000F);
+    uint8_t NN = (Y << 4) | N;
+    uint16_t NNN = (((uint16_t)X) << 8) | (uint16_t)NN;
 
-    // Execute opcode
-    /*
-    Execute the opcode instruction.
-    Update the pc.
-    */
+    // 00E0 (clear screen)
+    // 1NNN (jump)
+    // 6XNN (set register VX)
+    // 7XNN (add value to register VX)
+    // ANNN (set index register I)
+    // DXYN (display/draw)
 
-    // Update timers
-    /*
-    They both count down to 0 if they have been set to a value larger than 0.
-    Frequency of 60 Hz -> decrement 60 times in 1 second.
-    Implement something that slows down the emulation cycle to execute 60 opcodes in 1 second.
-    */
+    switch (first_nibble) {
+        case 0:
+            // 0NNN
+            // 00E0
+            // 00EE
+            break;
+        case 1:
+            // 1NNN
+            break;
+        case 2:
+            // 2NNN
+            break;
+        case 3:
+            // 3XNN
+            break;
+        case 4:
+            // 4XNN
+            break;
+        case 5:
+            break;
+        case 6:
+            break;
+        case 7:
+            break;
+        case 8:
+            break;
+        case 9:
+            break;
+        case 0xA:
+            break;
+        case 0xB:
+            break;
+        case 0xC:
+            break;
+        case 0xD:
+            break;
+        case 0xE:
+            break;
+        case 0xF:
+            break;
+        default:
+            // error
+            break;
+    }
+
+    // Execute the instruction and do what it tells you
 }
