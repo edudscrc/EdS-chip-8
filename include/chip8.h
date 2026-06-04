@@ -1,30 +1,21 @@
+#ifndef CHIP_8_H
+#define CHIP_8_H
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-
-const uint8_t sprite_0[5] = {0xF0, 0x90, 0x90, 0x90, 0xF0}; // 0
-const uint8_t sprite_1[5] = {0x20, 0x60, 0x20, 0x20, 0x70}; // 1
-const uint8_t sprite_2[5] = {0xF0, 0x10, 0xF0, 0x80, 0xF0}; // 2
-const uint8_t sprite_3[5] = {0xF0, 0x10, 0xF0, 0x10, 0xF0}; // 3
-const uint8_t sprite_4[5] = {0x90, 0x90, 0xF0, 0x10, 0x10}; // 4
-const uint8_t sprite_5[5] = {0xF0, 0x80, 0xF0, 0x10, 0xF0}; // 5
-const uint8_t sprite_6[5] = {0xF0, 0x80, 0xF0, 0x90, 0xF0}; // 6
-const uint8_t sprite_7[5] = {0xF0, 0x10, 0x20, 0x40, 0x40}; // 7
-const uint8_t sprite_8[5] = {0xF0, 0x90, 0xF0, 0x90, 0xF0}; // 8
-const uint8_t sprite_9[5] = {0xF0, 0x90, 0xF0, 0x10, 0xF0}; // 9
-const uint8_t sprite_A[5] = {0xF0, 0x90, 0xF0, 0x90, 0x90}; // A
-const uint8_t sprite_B[5] = {0xE0, 0x90, 0xE0, 0x90, 0xE0}; // B
-const uint8_t sprite_C[5] = {0xF0, 0x80, 0x80, 0x80, 0xF0}; // C
-const uint8_t sprite_D[5] = {0xE0, 0x90, 0x90, 0x90, 0xE0}; // D
-const uint8_t sprite_E[5] = {0xF0, 0x80, 0xF0, 0x80, 0xF0}; // E
-const uint8_t sprite_F[5] = {0xF0, 0x80, 0xF0, 0x80, 0x80}; // F
+#include <stdio.h>
+#include <stdlib.h>
 
 struct EdS_chip_8 {
     uint8_t memory[4096];
-    bool display[64 * 32];
+    bool display[64][32];
 
+    // points at the current instruction in memory
     uint16_t PC;
+    // I -> Index Register -> used to point at locations in memory
     uint16_t I;
+    // used to call functions and return from them
     uint16_t stack[16];
 
     uint8_t delay_timer;
@@ -35,5 +26,8 @@ struct EdS_chip_8 {
 };
 
 void EdS_chip_8_init(struct EdS_chip_8* obj);
+void EdS_chip_8_load_rom(struct EdS_chip_8* obj, const char *rom);
 void EdS_chip_8_init_font(struct EdS_chip_8* obj);
 void EdS_chip_8_main_loop(struct EdS_chip_8* obj);
+
+#endif

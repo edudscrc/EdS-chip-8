@@ -1,8 +1,10 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
-static const int screen_width = 640;
-static const int screen_height = 480;
+#include "../include/chip8.h"
+
+static const int screen_width = 64;
+static const int screen_height = 32;
 
 // Starts up SDL and creates window
 bool init();
@@ -50,6 +52,10 @@ int main()
             SDL_Event e;
             SDL_zero(e);
 
+            struct EdS_chip_8 c8;
+            EdS_chip_8_init(&c8);
+            EdS_chip_8_load_rom(&c8, "./roms/logo_IBM.ch8");
+
             // The main loop
             while (!quit)
             {
@@ -63,6 +69,8 @@ int main()
                         quit = true;
                     }
                 }
+
+                EdS_chip_8_main_loop(&c8);
 
                 // Fill the surface white
                 SDL_FillSurfaceRect(screen_surface, NULL, SDL_MapSurfaceRGB(screen_surface, 0xFF, 0xFF, 0xFF));

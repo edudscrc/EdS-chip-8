@@ -2,9 +2,43 @@
 
 void EdS_chip_8_init(struct EdS_chip_8* obj) {
     EdS_chip_8_init_font(obj);
+
+    obj->PC = 0x200;
+    obj->I = 0;
+}
+
+void EdS_chip_8_load_rom(struct EdS_chip_8* obj, const char *rom) {
+    FILE *rom_file = fopen(rom, "rb");
+    fseek(rom_file, 0, SEEK_END);
+    long rom_size = ftell(rom_file);
+    rewind(rom_file);
+
+    uint8_t *data = (uint8_t*)malloc(sizeof(uint8_t) * rom_size);
+    fread(data, 1, rom_size, rom_file);
+
+    for (long i = 0; i < rom_size; ++i) obj->memory[0x200 + i] = data[i];
+
+    free(data);
 }
 
 void EdS_chip_8_init_font(struct EdS_chip_8* obj) {
+    const uint8_t sprite_0[5] = {0xF0, 0x90, 0x90, 0x90, 0xF0}; // 0
+    const uint8_t sprite_1[5] = {0x20, 0x60, 0x20, 0x20, 0x70}; // 1
+    const uint8_t sprite_2[5] = {0xF0, 0x10, 0xF0, 0x80, 0xF0}; // 2
+    const uint8_t sprite_3[5] = {0xF0, 0x10, 0xF0, 0x10, 0xF0}; // 3
+    const uint8_t sprite_4[5] = {0x90, 0x90, 0xF0, 0x10, 0x10}; // 4
+    const uint8_t sprite_5[5] = {0xF0, 0x80, 0xF0, 0x10, 0xF0}; // 5
+    const uint8_t sprite_6[5] = {0xF0, 0x80, 0xF0, 0x90, 0xF0}; // 6
+    const uint8_t sprite_7[5] = {0xF0, 0x10, 0x20, 0x40, 0x40}; // 7
+    const uint8_t sprite_8[5] = {0xF0, 0x90, 0xF0, 0x90, 0xF0}; // 8
+    const uint8_t sprite_9[5] = {0xF0, 0x90, 0xF0, 0x10, 0xF0}; // 9
+    const uint8_t sprite_A[5] = {0xF0, 0x90, 0xF0, 0x90, 0x90}; // A
+    const uint8_t sprite_B[5] = {0xE0, 0x90, 0xE0, 0x90, 0xE0}; // B
+    const uint8_t sprite_C[5] = {0xF0, 0x80, 0x80, 0x80, 0xF0}; // C
+    const uint8_t sprite_D[5] = {0xE0, 0x90, 0x90, 0x90, 0xE0}; // D
+    const uint8_t sprite_E[5] = {0xF0, 0x80, 0xF0, 0x80, 0xF0}; // E
+    const uint8_t sprite_F[5] = {0xF0, 0x80, 0xF0, 0x80, 0x80}; // F
+
     for (size_t i = 0; i < 5; ++i) {
         obj->memory[0x050 + 5 * 0 + i] = sprite_0[i];
         obj->memory[0x050 + 5 * 1 + i] = sprite_1[i];
@@ -49,40 +83,102 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
 
     switch (first_nibble) {
         case 0:
-            // 0NNN
-            // 00E0
-            // 00EE
+            switch (NNN) {
+                case 0x00E0:
+                    // clear screen
+                    for (size_t i = 0; i < 64; ++i)
+                        for (size_t j = 0; j < 32; ++j)
+                            obj->display[i][j] = false;
+                    break;
+                case 0x00EE:
+                    // return from a subroutine
+                    break;
+                default:
+                    // calls machine code rountine at address NNN. Not necessary for most ROMs
+                    break;
+            }
             break;
         case 1:
-            // 1NNN
+            // 1NNN (jumps to address NNN)
+            obj->PC = NNN;
             break;
         case 2:
-            // 2NNN
             break;
         case 3:
-            // 3XNN
             break;
         case 4:
-            // 4XNN
             break;
         case 5:
             break;
         case 6:
+            // 6XNN (Sets VX to NN)
+            obj->V[X] = NN;
             break;
         case 7:
+            // 7XNN (Adds NN to VX) (carry flag is not changed)
+            obj->V[X] += NN;
             break;
         case 8:
             break;
         case 9:
             break;
         case 0xA:
+            // ANNN (Sets I to the address NNN)
+            obj->I = NNN;
             break;
         case 0xB:
             break;
         case 0xC:
             break;
-        case 0xD:
+        case 0xD: {
+            // DXYN:
+            // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
+            // Each row of 8 pixels is read as bit-coded starting from memory location I.
+            // I values does not change after the execution of this instruction.
+            // VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and
+            // to 0 if that does not happen.
+
+            uint8_t x = obj->V[X] % 64; // & 63
+            uint8_t y = obj->V[Y] % 32; // & 31
+
+            obj->V[15] = 0;
+
+            for (uint16_t i = 0; i < N; ++i) {
+                uint8_t sprite_byte = obj->memory[obj->I + i];
+
+                uint8_t bit_values[8];
+                bit_values[0] = (sprite_byte & 0b10000000) >> 7;
+                bit_values[1] = (sprite_byte & 0b01000000) >> 6;
+                bit_values[2] = (sprite_byte & 0b00100000) >> 5;
+                bit_values[3] = (sprite_byte & 0b00010000) >> 4;
+                bit_values[4] = (sprite_byte & 0b00001000) >> 3;
+                bit_values[5] = (sprite_byte & 0b00000100) >> 2;
+                bit_values[6] = (sprite_byte & 0b00000010) >> 1;
+                bit_values[7] = sprite_byte & 0b00000001;
+
+                for (uint8_t j = 0; j < 8; ++j) {
+                    if (bit_values[j] == 1 && obj->display[x][y] == true) {
+                        obj->display[x][y] = false;
+                        obj->V[15] = 1;
+                    }
+                    else if (bit_values[j] == 1 && obj->display[x][y] == false) {
+                        obj->display[x][y] = true;
+                    }
+                    ++x;
+                    if (x > 63) {
+                        x = obj->V[X] % 64;
+                        break;
+                    }
+                }
+
+                ++y;
+                if (y > 31) {
+                    y = obj->V[Y] % 32;
+                    break;
+                }
+            }
             break;
+        }
         case 0xE:
             break;
         case 0xF:
@@ -91,6 +187,4 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
             // error
             break;
     }
-
-    // Execute the instruction and do what it tells you
 }
