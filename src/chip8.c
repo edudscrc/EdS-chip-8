@@ -171,6 +171,8 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
                     }
                 }
 
+                x = obj->V[X] % 64;
+
                 ++y;
                 if (y > 31) {
                     y = obj->V[Y] % 32;
