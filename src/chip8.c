@@ -86,9 +86,9 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
             switch (NNN) {
                 case 0x00E0:
                     // clear screen
-                    for (size_t i = 0; i < 64; ++i)
-                        for (size_t j = 0; j < 32; ++j)
-                            obj->display[i][j] = false;
+                    for (size_t i = 0; i < DISPLAY_HEIGHT; ++i)
+                        for (size_t j = 0; j < DISPLAY_WIDTH; ++j)
+                            obj->display[i * DISPLAY_WIDTH + j] = false;
                     break;
                 case 0x00EE:
                     // return from a subroutine
@@ -138,8 +138,8 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
             // VF is set to 1 if any screen pixels are flipped from set to unset when the sprite is drawn, and
             // to 0 if that does not happen.
 
-            uint8_t x = obj->V[X] % 64; // & 63
-            uint8_t y = obj->V[Y] % 32; // & 31
+            uint8_t x = obj->V[X] % DISPLAY_WIDTH; // & 63
+            uint8_t y = obj->V[Y] % DISPLAY_HEIGHT; // & 31
 
             obj->V[15] = 0;
 
@@ -147,22 +147,22 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
                 uint8_t sprite_byte = obj->memory[obj->I + i];
 
                 uint8_t bit_values[8];
-                bit_values[0] = (sprite_byte & 0b10000000) >> 7;
-                bit_values[1] = (sprite_byte & 0b01000000) >> 6;
-                bit_values[2] = (sprite_byte & 0b00100000) >> 5;
-                bit_values[3] = (sprite_byte & 0b00010000) >> 4;
-                bit_values[4] = (sprite_byte & 0b00001000) >> 3;
-                bit_values[5] = (sprite_byte & 0b00000100) >> 2;
-                bit_values[6] = (sprite_byte & 0b00000010) >> 1;
-                bit_values[7] = sprite_byte & 0b00000001;
+                bit_values[0] = (sprite_byte & (1 << 7)) >> 7;
+                bit_values[1] = (sprite_byte & (1 << 6)) >> 6;
+                bit_values[2] = (sprite_byte & (1 << 5)) >> 5;
+                bit_values[3] = (sprite_byte & (1 << 4)) >> 4;
+                bit_values[4] = (sprite_byte & (1 << 3)) >> 3;
+                bit_values[5] = (sprite_byte & (1 << 2)) >> 2;
+                bit_values[6] = (sprite_byte & (1 << 1)) >> 1;
+                bit_values[7] = sprite_byte & 1;
 
                 for (uint8_t j = 0; j < 8; ++j) {
-                    if (bit_values[j] == 1 && obj->display[x][y] == true) {
-                        obj->display[x][y] = false;
+                    if (bit_values[j] == 1 && obj->display[y * DISPLAY_WIDTH + x] == true) {
+                        obj->display[y * DISPLAY_WIDTH + x] = false;
                         obj->V[15] = 1;
                     }
-                    else if (bit_values[j] == 1 && obj->display[x][y] == false) {
-                        obj->display[x][y] = true;
+                    else if (bit_values[j] == 1 && obj->display[y * DISPLAY_WIDTH + x] == false) {
+                        obj->display[y * DISPLAY_WIDTH + x] = true;
                     }
                     ++x;
                     if (x > 63) {

@@ -7,9 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define DISPLAY_WIDTH 64
+#define DISPLAY_HEIGHT 32
+
 struct EdS_chip_8 {
     uint8_t memory[4096];
-    bool display[64][32];
+    bool display[DISPLAY_WIDTH * DISPLAY_HEIGHT];
 
     // points at the current instruction in memory
     uint16_t PC;
