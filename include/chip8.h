@@ -6,6 +6,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define DISPLAY_WIDTH 64
 #define DISPLAY_HEIGHT 32
@@ -20,9 +21,12 @@ struct EdS_chip_8 {
     uint16_t I;
     // used to call functions and return from them
     uint16_t stack[16];
+    uint8_t stack_pointer;
 
     uint8_t delay_timer;
     uint8_t sound_timer;
+
+    bool keyboard[16];
 
     // V0 until VF
     uint8_t V[16];

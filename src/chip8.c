@@ -5,6 +5,9 @@ void EdS_chip_8_init(struct EdS_chip_8* obj) {
 
     obj->PC = 0x200;
     obj->I = 0;
+    obj->stack_pointer = 0;
+
+    for (uint8_t i = 0; i < 16; ++i) obj->keyboard[i] = false;
 }
 
 void EdS_chip_8_load_rom(struct EdS_chip_8* obj, const char *rom) {
@@ -92,9 +95,10 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
                     break;
                 case 0x00EE:
                     // return from a subroutine
+                    obj->PC = obj->stack[--obj->stack_pointer];
                     break;
                 default:
-                    // calls machine code rountine at address NNN. Not necessary for most ROMs
+                    // Don't need to implement 0x0NNN
                     break;
             }
             break;
@@ -103,12 +107,21 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
             obj->PC = NNN;
             break;
         case 2:
+            // Calls subroutine at address NNN
+            obj->stack[obj->stack_pointer++] = obj->PC;
+            obj->PC = NNN;
             break;
         case 3:
+            // Skip instruction
+            if (obj->V[X] == NN) obj->PC += 2;
             break;
         case 4:
+            // Skip instruction
+            if (obj->V[X] != NN) obj->PC += 2;
             break;
         case 5:
+            // Skip instruction
+            if (obj->V[X] == obj->V[Y]) obj->PC += 2;
             break;
         case 6:
             // 6XNN (Sets VX to NN)
@@ -121,15 +134,28 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
         case 8:
             break;
         case 9:
+            // Skip instruction
+            if (obj->V[X] != obj->V[Y]) obj->PC += 2;
             break;
         case 0xA:
             // ANNN (Sets I to the address NNN)
             obj->I = NNN;
             break;
         case 0xB:
+            // Jumps to the address NNN + V0 (0xBNNN)
+            obj->PC = obj->V[0] + NNN;
+            // I could also make a setup that changes 0xBNNN for 0xBXNN to support more CHIP-8 programs
+            // Jumps to address XNN + VX
+            // 0xBXNN below:
+            obj->PC = NNN + obj->V[X];
             break;
-        case 0xC:
+        case 0xC: {
+            // Sets VX to the result of a bitwise AND operation on a random number and NN
+            srand((unsigned int)time(NULL));
+            uint8_t random_number = (uint8_t)(rand() % (255 - 0 + 1) + 0);
+            obj->V[X] = random_number & NN;
             break;
+        }
         case 0xD: {
             // DXYN:
             // Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels and a height of N pixels.
@@ -182,6 +208,13 @@ void EdS_chip_8_main_loop(struct EdS_chip_8* obj) {
             break;
         }
         case 0xE:
+            if (NN == 0x9E) {
+                // if key corresponding to VX value is pressed
+                if (obj->keyboard[obj->V[X]]) obj->PC += 2;
+            } else if (NN == 0xA1) {
+                // if key corresponding to VX value is NOT pressed
+                if (!obj->keyboard[obj->V[X]]) obj->PC += 2;
+            }
             break;
         case 0xF:
             break;
